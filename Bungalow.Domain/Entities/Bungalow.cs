@@ -1,4 +1,4 @@
-﻿namespace Bungalow.Domain.Entities;
+﻿namespace BungalowApi.Domain.Entities;
 
 public class Bungalow
 {
