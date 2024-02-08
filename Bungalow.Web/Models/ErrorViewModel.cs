@@ -1,4 +1,4 @@
-namespace Bungalow.Web.Models
+namespace BungalowApi.Web.Models
 {
     public class ErrorViewModel
     {

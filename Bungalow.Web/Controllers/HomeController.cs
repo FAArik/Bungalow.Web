@@ -1,8 +1,8 @@
-using Bungalow.Web.Models;
+using BungalowApi.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
-namespace Bungalow.Web.Controllers
+namespace BungalowApi.Web.Controllers
 {
     public class HomeController : Controller
     {
