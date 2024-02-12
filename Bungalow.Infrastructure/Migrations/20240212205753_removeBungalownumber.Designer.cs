@@ -4,6 +4,7 @@ using BungalowApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BungalowApi.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240212205753_removeBungalownumber")]
+    partial class removeBungalownumber
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -92,82 +95,6 @@ namespace BungalowApi.Infrastructure.Migrations
                             Price = 400.0,
                             Sqft = 750
                         });
-                });
-
-            modelBuilder.Entity("BungalowApi.Domain.Entities.BungalowNumber", b =>
-                {
-                    b.Property<int>("Bungalow_Number")
-                        .HasColumnType("int");
-
-                    b.Property<int>("BungalowId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SpecialDetails")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Bungalow_Number");
-
-                    b.HasIndex("BungalowId");
-
-                    b.ToTable("BungalowNumbers");
-
-                    b.HasData(
-                        new
-                        {
-                            Bungalow_Number = 101,
-                            BungalowId = 1
-                        },
-                        new
-                        {
-                            Bungalow_Number = 102,
-                            BungalowId = 1
-                        },
-                        new
-                        {
-                            Bungalow_Number = 103,
-                            BungalowId = 1
-                        },
-                        new
-                        {
-                            Bungalow_Number = 104,
-                            BungalowId = 1
-                        },
-                        new
-                        {
-                            Bungalow_Number = 201,
-                            BungalowId = 2
-                        },
-                        new
-                        {
-                            Bungalow_Number = 202,
-                            BungalowId = 2
-                        },
-                        new
-                        {
-                            Bungalow_Number = 203,
-                            BungalowId = 2
-                        },
-                        new
-                        {
-                            Bungalow_Number = 301,
-                            BungalowId = 3
-                        },
-                        new
-                        {
-                            Bungalow_Number = 302,
-                            BungalowId = 3
-                        });
-                });
-
-            modelBuilder.Entity("BungalowApi.Domain.Entities.BungalowNumber", b =>
-                {
-                    b.HasOne("BungalowApi.Domain.Entities.Bungalow", "Bungalow")
-                        .WithMany()
-                        .HasForeignKey("BungalowId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Bungalow");
                 });
 #pragma warning restore 612, 618
         }
