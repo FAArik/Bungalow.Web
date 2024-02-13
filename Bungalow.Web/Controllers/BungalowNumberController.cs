@@ -1,6 +1,9 @@
 ﻿using BungalowApi.Domain.Entities;
 using BungalowApi.Infrastructure.Data;
+using BungalowApi.Web.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace BungalowApi.Web.Controllers;
@@ -16,24 +19,43 @@ public class BungalowNumberController : Controller
 
     public IActionResult Index()
     {
-        var bungalowNumbers = _context.BungalowNumbers.ToList();
+        var bungalowNumbers = _context.BungalowNumbers.Include(x => x.Bungalow).ToList();
         return View(bungalowNumbers);
     }
     public IActionResult Create()
     {
-        return View();
+        BungalowNumberVM bungalowNumberVM = new()
+        {
+            BungalowList = _context.Bungalows.ToList().Select(x => new SelectListItem
+            {
+                Text = x.Name,
+                Value = x.Id.ToString()
+            }),
+        };
+        return View(bungalowNumberVM);
     }
     [HttpPost]
-    public IActionResult Create(BungalowNumber bungalowNumber)
+    public IActionResult Create(BungalowNumberVM bungalowNumber)
     {
-        if (ModelState.IsValid)
+        bool roomNumberExists = _context.BungalowNumbers.Any(x => x.Bungalow_Number == bungalowNumber.BungalowNumber.Bungalow_Number);
+
+        if (ModelState.IsValid && !roomNumberExists)
         {
-            _context.BungalowNumbers.Add(bungalowNumber);
+            _context.BungalowNumbers.Add(bungalowNumber.BungalowNumber);
             _context.SaveChanges();
-            TempData["success"] = "The BungalowNumber has been created successfully";
-            return RedirectToAction("Index", "Bungalow");
+            TempData["success"] = "The Bungalow number has been created successfully";
+            return RedirectToAction("Index", "BungalowNumber");
         }
-        return View();
+        if (roomNumberExists)
+        {
+            TempData["error"] = "The Bungalow number already exists ";
+        }
+        bungalowNumber.BungalowList = _context.Bungalows.ToList().Select(x => new SelectListItem
+        {
+            Text = x.Name,
+            Value = x.Id.ToString()
+        });
+        return View(bungalowNumber);
     }
     public IActionResult Update(int bungalowNumber)
     {
@@ -58,7 +80,7 @@ public class BungalowNumberController : Controller
     }
     public IActionResult Delete(int bungalowNumber)
     {
-        BungalowNumber bungalow_Number  = _context.BungalowNumbers.FirstOrDefault(x => x.Bungalow_Number == bungalowNumber);
+        BungalowNumber bungalow_Number = _context.BungalowNumbers.FirstOrDefault(x => x.Bungalow_Number == bungalowNumber);
         if (bungalow_Number is null)
         {
             return RedirectToAction("Error", "Home");
