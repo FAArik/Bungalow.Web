@@ -1,4 +1,5 @@
-﻿using BungalowApi.Domain.Entities;
+﻿using BungalowApi.Application.Common.Interfaces;
+using BungalowApi.Domain.Entities;
 using BungalowApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
@@ -7,16 +8,16 @@ namespace BungalowApi.Web.Controllers;
 
 public class BungalowController : Controller
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IBungalowRepository _bungalowRepository;
 
-    public BungalowController(ApplicationDbContext context)
+    public BungalowController(IBungalowRepository bungalowRepository)
     {
-        _context = context;
+        _bungalowRepository = bungalowRepository;
     }
 
     public IActionResult Index()
     {
-        var bungalows = _context.Bungalows.ToList();
+        var bungalows = _bungalowRepository.GetAll();
         return View(bungalows);
     }
     public IActionResult Create()
@@ -28,8 +29,8 @@ public class BungalowController : Controller
     {
         if (ModelState.IsValid)
         {
-            _context.Bungalows.Add(bungalow);
-            _context.SaveChanges();
+            _bungalowRepository.Add(bungalow);
+            _bungalowRepository.Save();
             TempData["success"] = "The Bungalow has been created successfully";
             return RedirectToAction(nameof(Index));
         }
@@ -37,7 +38,7 @@ public class BungalowController : Controller
     }
     public IActionResult Update(int bungalowId)
     {
-        Bungalow bungalow = _context.Bungalows.FirstOrDefault(x => x.Id == bungalowId);
+        Bungalow bungalow = _bungalowRepository.Get(x => x.Id == bungalowId);
         if (bungalow is null)
         {
             return RedirectToAction("Error", "Home");
@@ -49,8 +50,8 @@ public class BungalowController : Controller
     {
         if (ModelState.IsValid && bungalow.Id > 0)
         {
-            _context.Bungalows.Update(bungalow);
-            _context.SaveChanges();
+            _bungalowRepository.Update(bungalow);
+            _bungalowRepository.Save();
             TempData["success"] = "The Bungalow has been updated successfully";
             return RedirectToAction(nameof(Index));
         }
@@ -58,7 +59,7 @@ public class BungalowController : Controller
     }
     public IActionResult Delete(int bungalowId)
     {
-        Bungalow bungalow = _context.Bungalows.FirstOrDefault(x => x.Id == bungalowId);
+        Bungalow bungalow = _bungalowRepository.Get(x => x.Id == bungalowId);
         if (bungalow is null)
         {
             return RedirectToAction("Error", "Home");
@@ -68,11 +69,11 @@ public class BungalowController : Controller
     [HttpPost]
     public IActionResult Delete(Bungalow bungalow)
     {
-        Bungalow? deleteBungalow = _context.Bungalows.FirstOrDefault(u => u.Id == bungalow.Id);
+        Bungalow? deleteBungalow = _bungalowRepository.Get(u => u.Id == bungalow.Id);
         if (deleteBungalow is not null)
         {
-            _context.Bungalows.Remove(deleteBungalow);
-            _context.SaveChanges();
+            _bungalowRepository.Delete(deleteBungalow);
+            _bungalowRepository.Save();
             TempData["success"] = "The Bungalow has been deleted successfully";
             return RedirectToAction(nameof(Index));
         }

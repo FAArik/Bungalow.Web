@@ -1,12 +1,17 @@
+using BungalowApi.Application.Common.Interfaces;
 using BungalowApi.Infrastructure.Data;
+using BungalowApi.Infrastructure.Repository;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddDbContext<ApplicationDbContext>(option=>
+builder.Services.AddDbContext<ApplicationDbContext>(option =>
 option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IBungalowRepository, BungalowRepository>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
