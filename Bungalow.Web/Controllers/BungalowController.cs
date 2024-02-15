@@ -31,7 +31,7 @@ public class BungalowController : Controller
             _context.Bungalows.Add(bungalow);
             _context.SaveChanges();
             TempData["success"] = "The Bungalow has been created successfully";
-            return RedirectToAction("Index", "Bungalow");
+            return RedirectToAction(nameof(Index));
         }
         return View();
     }
@@ -52,7 +52,7 @@ public class BungalowController : Controller
             _context.Bungalows.Update(bungalow);
             _context.SaveChanges();
             TempData["success"] = "The Bungalow has been updated successfully";
-            return RedirectToAction("Index", "Bungalow");
+            return RedirectToAction(nameof(Index));
         }
         return View();
     }
@@ -74,7 +74,7 @@ public class BungalowController : Controller
             _context.Bungalows.Remove(deleteBungalow);
             _context.SaveChanges();
             TempData["success"] = "The Bungalow has been deleted successfully";
-            return RedirectToAction("Index", "Bungalow");
+            return RedirectToAction(nameof(Index));
         }
         TempData["error"] = "The Bungalow could not be deleted!";
 

@@ -1,40 +1,41 @@
-﻿@model BungalowApi.Web.ViewModels.BungalowNumberVM
+﻿@model BungalowNumberVM
 
 <div class="w-100 card-body border p-4">
     <div class="card-header bg-success bg-gradient ml-0 py-3">
         <div class="row">
             <div class="col-12 text-center">
-                <h2 class="text-white py-2">Create Bungalow</h2>
+                <h2 class="text-white py-2">Update Bungalow Number</h2>
             </div>
         </div>
     </div>
     <div class="card-body border p-4">
         <form method="post" class="row">
+            <input asp-for="@Model.BungalowNumber.Bungalow_Number" hidden />
             <div class="p-3">
                 <div class="form-floating py-1 col-12">
-                    <select asp-for="@Model.BungalowNumber.BungalowId" asp-items="@Model.BungalowList" class="form-select border shadow">
+                    <select disabled asp-for="@Model.BungalowNumber.BungalowId" asp-items="@Model.BungalowList" class="form-select border shadow">
                         <option disabled selected>--Select Bungalow--</option>
                     </select>
                     <label asp-for="BungalowNumber.BungalowId" class="ms-2"></label>
                     <span asp-validation-for="BungalowNumber.BungalowId" class="text-danger"></span>
                 </div>
                 <div class="form-floating py-1 col-12">
-                    <input asp-for="BungalowNumber.Bungalow_Number" class="form-control border shadow" />
+                    <input asp-for="BungalowNumber.Bungalow_Number" disabled class="form-control border shadow" />
                     <label asp-for="BungalowNumber.Bungalow_Number" class="ms-2"></label>
                     <span asp-validation-for="BungalowNumber.Bungalow_Number" class="text-danger"></span>
 
                 </div>
                 <div class="form-floating py-1 col-12">
-                    <input asp-for="BungalowNumber.SpecialDetails" class="form-control border shadow" />
+                    <input asp-for="BungalowNumber.SpecialDetails" disabled class="form-control border shadow" />
                     <label asp-for="BungalowNumber.SpecialDetails" class="ms-2"></label>
                     <span asp-validation-for="BungalowNumber.SpecialDetails" class="text-danger"></span>
                 </div>
             </div>
             <div class="row pt-2">
                 <div class="col-6 col-md-3">
-                    <button class="btn btn-success w-100" type="submit">
+                    <button class="btn btn-danger w-100" type="submit">
                         <i class="bi bi-check-circle"></i>
-                        Create
+                        Delete
                     </button>
                 </div>
                 <div class="col-6 col-md-3">

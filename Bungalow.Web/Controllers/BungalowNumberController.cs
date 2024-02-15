@@ -35,68 +35,93 @@ public class BungalowNumberController : Controller
         return View(bungalowNumberVM);
     }
     [HttpPost]
-    public IActionResult Create(BungalowNumberVM bungalowNumber)
+    public IActionResult Create(BungalowNumberVM bungalowNumbervm)
     {
-        bool roomNumberExists = _context.BungalowNumbers.Any(x => x.Bungalow_Number == bungalowNumber.BungalowNumber.Bungalow_Number);
+        bool roomNumberExists = _context.BungalowNumbers.Any(x => x.Bungalow_Number == bungalowNumbervm.BungalowNumber.Bungalow_Number);
 
         if (ModelState.IsValid && !roomNumberExists)
         {
-            _context.BungalowNumbers.Add(bungalowNumber.BungalowNumber);
+            _context.BungalowNumbers.Add(bungalowNumbervm.BungalowNumber);
             _context.SaveChanges();
             TempData["success"] = "The Bungalow number has been created successfully";
-            return RedirectToAction("Index", "BungalowNumber");
+            return RedirectToAction(nameof(Index));
         }
         if (roomNumberExists)
         {
             TempData["error"] = "The Bungalow number already exists ";
         }
-        bungalowNumber.BungalowList = _context.Bungalows.ToList().Select(x => new SelectListItem
+        bungalowNumbervm.BungalowList = _context.Bungalows.ToList().Select(x => new SelectListItem
         {
             Text = x.Name,
             Value = x.Id.ToString()
         });
-        return View(bungalowNumber);
+        return View(bungalowNumbervm);
     }
-    public IActionResult Update(int bungalowNumber)
+    public IActionResult Update(int bungalowNumberId)
     {
-        BungalowNumber bungalow = _context.BungalowNumbers.FirstOrDefault(x => x.Bungalow_Number == bungalowNumber);
-        if (bungalow is null)
+        BungalowNumberVM bungalowNumbervm = new()
+        {
+            BungalowNumber = _context.BungalowNumbers.FirstOrDefault(x => x.Bungalow_Number == bungalowNumberId),
+            BungalowList = _context.Bungalows.ToList().Select(x => new SelectListItem
+             {
+                 Text = x.Name,
+                 Value = x.Id.ToString()
+             })
+        };
+
+        if (bungalowNumbervm.BungalowNumber is null)
         {
             return RedirectToAction("Error", "Home");
         }
-        return View(bungalow);
+
+        return View(bungalowNumbervm);
     }
     [HttpPost]
-    public IActionResult Update(BungalowNumber bungalowNumber)
+    public IActionResult Update(BungalowNumberVM bungalowNumbervm)
     {
-        if (ModelState.IsValid && bungalowNumber.Bungalow_Number > 0)
+
+        if (ModelState.IsValid)
         {
-            _context.BungalowNumbers.Update(bungalowNumber);
+            _context.BungalowNumbers.Update(bungalowNumbervm.BungalowNumber);
             _context.SaveChanges();
             TempData["success"] = "The BungalowNumber has been updated successfully";
-            return RedirectToAction("Index", "Bungalow");
+            return RedirectToAction(nameof(Index));
         }
-        return View();
+        bungalowNumbervm.BungalowList = _context.Bungalows.ToList().Select(x => new SelectListItem
+        {
+            Text = x.Name,
+            Value = x.Id.ToString()
+        });
+        return View(bungalowNumbervm);
     }
-    public IActionResult Delete(int bungalowNumber)
+    public IActionResult Delete(int bungalowNumberId)
     {
-        BungalowNumber bungalow_Number = _context.BungalowNumbers.FirstOrDefault(x => x.Bungalow_Number == bungalowNumber);
-        if (bungalow_Number is null)
+
+        BungalowNumberVM bungalowNumbervm = new()
+        {
+            BungalowNumber = _context.BungalowNumbers.FirstOrDefault(x => x.Bungalow_Number == bungalowNumberId),
+        BungalowList = _context.Bungalows.ToList().Select(x => new SelectListItem
+            {
+                Text = x.Name,
+                Value = x.Id.ToString()
+            })
+        };
+        if (bungalowNumbervm.BungalowNumber is null)
         {
             return RedirectToAction("Error", "Home");
         }
-        return View(bungalow_Number);
+        return View(bungalowNumbervm);
     }
     [HttpPost]
-    public IActionResult Delete(BungalowNumber bungalowNumber)
+    public IActionResult Delete(BungalowNumberVM bungalowNumbervm)
     {
-        BungalowNumber? deletebungalowNumber = _context.BungalowNumbers.FirstOrDefault(u => u.Bungalow_Number == bungalowNumber.Bungalow_Number);
+        BungalowNumber? deletebungalowNumber = _context.BungalowNumbers.FirstOrDefault(u => u.Bungalow_Number == bungalowNumbervm.BungalowNumber.Bungalow_Number);
         if (deletebungalowNumber is not null)
         {
-            _context.BungalowNumbers.Remove(bungalowNumber);
+            _context.BungalowNumbers.Remove(deletebungalowNumber);
             _context.SaveChanges();
             TempData["success"] = "The BungalowNumber has been deleted successfully";
-            return RedirectToAction("Index", "Bungalow");
+            return RedirectToAction(nameof(Index));
         }
         TempData["error"] = "The BungalowNumber could not be deleted!";
 
