@@ -8,12 +8,8 @@ namespace BungalowApi.Web.Controllers;
 
 public class BungalowController : Controller
 {
-    private readonly IBungalowRepository _bungalowRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public BungalowController(IBungalowRepository bungalowRepository)
-    {
-        _bungalowRepository = bungalowRepository;
-    }
 
     public IActionResult Index()
     {

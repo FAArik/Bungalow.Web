@@ -1,5 +1,4 @@
-﻿using BungalowApi.Domain.Entities;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace BungalowApi.Application.Common.Interfaces;
 
