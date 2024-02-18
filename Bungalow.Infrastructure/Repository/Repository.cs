@@ -1,8 +1,6 @@
 ﻿using BungalowApi.Application.Common.Interfaces;
-using BungalowApi.Domain.Entities;
 using BungalowApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace BungalowApi.Infrastructure.Repository;
@@ -21,7 +19,7 @@ public class Repository<T> : IRepository<T> where T : class
     public void Add(T entity)
     {
         dbSet.Add(entity);
-    } 
+    }
 
     public void Delete(T entity)
     {
@@ -60,5 +58,10 @@ public class Repository<T> : IRepository<T> where T : class
             }
         }
         return query.ToList();
+    }
+
+    public bool Any(Expression<Func<T, bool>>? filter)
+    {
+        return dbSet.Any(filter);
     }
 }

@@ -4,14 +4,14 @@ using BungalowApi.Infrastructure.Data;
 
 namespace BungalowApi.Infrastructure.Repository;
 
-public class BungalowRepository : Repository<Bungalow>, IBungalowRepository
+public class BungalowNumberRepository : Repository<BungalowNumber>, IBungalowNumberRepository
 {
     private readonly ApplicationDbContext _context;
-    public BungalowRepository(ApplicationDbContext context) : base(context)
+    public BungalowNumberRepository(ApplicationDbContext context) : base(context)
     {
         _context = context;
     }
-    public void Update(Bungalow entity)
+    public void Update(BungalowNumber entity)
     {
         _context.Update(entity);
     }
