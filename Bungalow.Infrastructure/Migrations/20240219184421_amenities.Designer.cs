@@ -4,6 +4,7 @@ using BungalowApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BungalowApi.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240219184421_amenities")]
+    partial class amenities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,8 +44,6 @@ namespace BungalowApi.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BungalowId");
 
                     b.ToTable("Amenities");
 
@@ -249,17 +250,6 @@ namespace BungalowApi.Infrastructure.Migrations
                             Bungalow_Number = 302,
                             BungalowId = 3
                         });
-                });
-
-            modelBuilder.Entity("BungalowApi.Domain.Entities.Amenity", b =>
-                {
-                    b.HasOne("BungalowApi.Domain.Entities.Bungalow", "Bungalow")
-                        .WithMany()
-                        .HasForeignKey("BungalowId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Bungalow");
                 });
 
             modelBuilder.Entity("BungalowApi.Domain.Entities.BungalowNumber", b =>

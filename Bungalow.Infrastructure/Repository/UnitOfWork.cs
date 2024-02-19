@@ -9,11 +9,14 @@ public class UnitOfWork : IUnitOfWork
     public IBungalowRepository Bungalow { get; private set; }
     public IBungalowNumberRepository BungalowNumber { get; private set; }
 
+    public IAmenityRepository Amenity { get; private set; }
+
     public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
         Bungalow = new BungalowRepository(_context);
         BungalowNumber = new BungalowNumberRepository(_context);
+        Amenity = new AmenityRepository(_context);
     }
     public void Save()
     {

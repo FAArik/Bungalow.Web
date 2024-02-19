@@ -1,6 +1,5 @@
 ﻿using BungalowApi.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 
 namespace BungalowApi.Infrastructure.Data;
 
@@ -13,6 +12,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Bungalow> Bungalows { get; set; }
     public DbSet<BungalowNumber> BungalowNumbers { get; set; }
+    public DbSet<Amenity> Amenities { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         //base.OnModelCreating(modelBuilder);
@@ -47,6 +47,7 @@ public class ApplicationDbContext : DbContext
                 Price = 400,
                 Sqft = 750
             });
+
         modelBuilder.Entity<BungalowNumber>().HasData(
             new BungalowNumber
             {
@@ -94,5 +95,72 @@ public class ApplicationDbContext : DbContext
                 BungalowId = 3,
             });
 
+        modelBuilder.Entity<Amenity>().HasData(
+            new Amenity
+            {
+                Id = 1,
+                BungalowId = 1,
+                Name = "Private Pool"
+            },
+            new Amenity
+            {
+                Id = 2,
+                BungalowId = 1,
+                Name = "Microwave"
+            },
+            new Amenity
+            {
+                Id = 3,
+                BungalowId = 1,
+                Name = "Private Balcony"
+            },
+            new Amenity
+            {
+                Id = 4,
+                BungalowId = 1,
+                Name = "1 king bed and 1 sofa bed"
+            },
+            new Amenity
+            {
+                Id = 5,
+                BungalowId = 2,
+                Name = "Private Plunge Pool"
+            },
+            new Amenity
+            {
+                Id = 6,
+                BungalowId = 2,
+                Name = "Microwave and Mini Refrigerator"
+            },
+            new Amenity
+            {
+                Id = 7,
+                BungalowId = 2,
+                Name = "Private Balcony"
+            },
+            new Amenity
+            {
+                Id = 8,
+                BungalowId = 2,
+                Name = "king bed or 2 double beds"
+            },
+            new Amenity
+            {
+                Id = 9,
+                BungalowId = 3,
+                Name = "Private Pool"
+            },
+            new Amenity
+            {
+                Id = 10,
+                BungalowId = 3,
+                Name = "Jacuzzi"
+            },
+            new Amenity
+            {
+                Id = 11,
+                BungalowId = 3,
+                Name = "Private Balcony"
+            });
     }
 }
