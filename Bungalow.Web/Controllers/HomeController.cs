@@ -1,4 +1,6 @@
+using BungalowApi.Application.Common.Interfaces;
 using BungalowApi.Web.Models;
+using BungalowApi.Web.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -6,16 +8,22 @@ namespace BungalowApi.Web.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(IUnitOfWork unitOfWork)
         {
-            _logger = logger;
+            _unitOfWork = unitOfWork;
         }
 
         public IActionResult Index()
         {
-            return View();
+            HomeVM homeVM = new HomeVM()
+            {
+                BungalowList = _unitOfWork.Bungalow.GetAll(includeProperties: "BungalowAmenity"),
+                Nights = 1,
+                CheckInDate = DateOnly.FromDateTime(DateTime.Now)
+            };
+            return View(homeVM);
         }
 
         public IActionResult Privacy()

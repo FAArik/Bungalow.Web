@@ -22,8 +22,4 @@
     <ProjectReference Include="..\Bungalow.Infrastructure\BungalowApi.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="wwwroot\images\BungalowImage\" />
-  </ItemGroup>
-
 </Project>
