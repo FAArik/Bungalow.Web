@@ -1,15 +1,19 @@
 ﻿using BungalowApi.Application.Common.Interfaces;
+using BungalowApi.Application.Common.Utility;
 using BungalowApi.Domain.Entities;
 using BungalowApi.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Data;
 
 namespace BungalowApi.Web.Controllers;
 
+[Authorize(Roles = SD.Role_Admin)]
 public class AmenityController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
-
+     
     public AmenityController(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
@@ -20,6 +24,7 @@ public class AmenityController : Controller
         var amenities = _unitOfWork.Amenity.GetAll(includeProperties: "Bungalow").ToList();
         return View(amenities);
     }
+
     public IActionResult Create()
     {
         AmenityVM amenityVM = new()
@@ -32,6 +37,7 @@ public class AmenityController : Controller
         };
         return View(amenityVM);
     }
+
     [HttpPost]
     public IActionResult Create(AmenityVM amenityvm)
     {
