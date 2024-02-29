@@ -25,6 +25,38 @@ namespace BungalowApi.Web.Controllers
             };
             return View(homeVM);
         }
+        [HttpPost]
+        public IActionResult Index(HomeVM homeVM)
+        {
+            homeVM.BungalowList = _unitOfWork.Bungalow.GetAll(includeProperties: "BungalowAmenity");
+            foreach (var bungalow in homeVM.BungalowList)
+            {
+                if (bungalow.Id % 2 == 0)
+                {
+                    bungalow.IsAvailable = false;
+                }
+            }
+            return View(homeVM);
+        }
+        public IActionResult GetBungalowsByDate(int nights, DateOnly checkInDate)
+        {
+            Thread.Sleep(2000);
+            var bungalowList = _unitOfWork.Bungalow.GetAll(includeProperties: "BungalowAmenity").ToList();
+            foreach (var bungalow in bungalowList)
+            {
+                if (bungalow.Id % 2 == 0)
+                {
+                    bungalow.IsAvailable = false;
+                }
+            }
+            HomeVM homeVM = new()
+            {
+                CheckInDate = checkInDate,
+                BungalowList = bungalowList,
+                Nights = nights
+            };
+            return PartialView("_BungalowList",homeVM);
+        }
 
         public IActionResult Privacy()
         {

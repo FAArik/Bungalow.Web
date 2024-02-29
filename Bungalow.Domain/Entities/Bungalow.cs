@@ -25,4 +25,6 @@ public class Bungalow
     public DateTime? UpdatedDate { get; set; }
     [ValidateNever]
     public IEnumerable<Amenity> BungalowAmenity { get; set; }
+    [NotMapped]
+    public bool IsAvailable { get; set; } = true;
 }
