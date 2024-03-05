@@ -14,6 +14,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Bungalow> Bungalows { get; set; }
     public DbSet<BungalowNumber> BungalowNumbers { get; set; }
     public DbSet<Amenity> Amenities { get; set; }
+    public DbSet<Booking> Bookings { get; set; }
     public DbSet<ApplicationUser> ApplicationUsers { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

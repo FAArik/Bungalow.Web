@@ -26,18 +26,6 @@ namespace BungalowApi.Web.Controllers
             return View(homeVM);
         }
         [HttpPost]
-        public IActionResult Index(HomeVM homeVM)
-        {
-            homeVM.BungalowList = _unitOfWork.Bungalow.GetAll(includeProperties: "BungalowAmenity");
-            foreach (var bungalow in homeVM.BungalowList)
-            {
-                if (bungalow.Id % 2 == 0)
-                {
-                    bungalow.IsAvailable = false;
-                }
-            }
-            return View(homeVM);
-        }
         public IActionResult GetBungalowsByDate(int nights, DateOnly checkInDate)
         {
             Thread.Sleep(2000);

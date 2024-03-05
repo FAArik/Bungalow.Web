@@ -4,6 +4,7 @@ using BungalowApi.Infrastructure.Data;
 using BungalowApi.Infrastructure.Repository;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,7 @@ builder.Services.Configure<IdentityOptions>(opt =>
 });
 
 var app = builder.Build();
+StripeConfiguration.ApiKey = app.Configuration.GetSection("Stripe:SecretKey").Get<string>();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
