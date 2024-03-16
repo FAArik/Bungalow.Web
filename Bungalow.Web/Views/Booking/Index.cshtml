@@ -1,0 +1,57 @@
+﻿@using BungalowApi.Application.Common.Utility;
+
+<div class="w-100 card border-0 p-4">
+    <div class="card-header bg-success bg-gradient ml-0 py-3">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h2 class="text-white py-2">Booking List</h2>
+            </div>
+        </div>
+    </div>
+    <div class="card-body border p-4">
+        <div class="d-flex justify-content-end pb-4 pt-2">
+            <ul class="list-group list-group-horizontal-sm">
+                <a style="text-decoration:none" asp-controller="Booking" asp-action="Index"
+                   asp-route-status="@SD.StatusPending">
+                <li class="list-group-item">@SD.StatusPending </li>
+                </a>
+                <a style="text-decoration:none" asp-controller="Booking" asp-action="Index"
+                   asp-route-status="@SD.StatusApproved">
+                <li class="list-group-item">@SD.StatusApproved </li>
+                </a>
+                <a style="text-decoration:none" asp-controller="Booking" asp-action="Index"
+                   asp-route-status="@SD.StatusCheckedIn">
+                <li class="list-group-item">@SD.StatusCheckedIn </li>
+                </a>
+                <a style="text-decoration:none" asp-controller="Booking" asp-action="Index"
+                   asp-route-status="@SD.StatusCompleted">
+                <li class="list-group-item">@SD.StatusCompleted </li>
+                </a>
+                <a style="text-decoration:none" asp-controller="Booking" asp-action="Index"
+                   asp-route-status="@SD.StatusCanceled">
+                <li class="list-group-item">@SD.StatusCanceled </li>
+                </a>
+            </ul>
+        </div>
+        <table id="bookingsTable" class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Check In Date</th>
+                    <th>Nights</th>
+                    <th>Total</th>
+                    <th> </th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/js/booking.js"></script>
+}

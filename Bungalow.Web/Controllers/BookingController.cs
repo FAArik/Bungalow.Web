@@ -13,6 +13,12 @@ public class BookingController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
 
+    [Authorize]
+    public IActionResult Index()
+    {
+        return View();
+    }
+
     public BookingController(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
@@ -95,14 +101,37 @@ public class BookingController : Controller
             var service = new SessionService();
             Session session = service.Get(bookingfromdb.StripeSessionId);
 
-            if (session.PaymentStatus=="paid")   
+            if (session.PaymentStatus == "paid")
             {
-                _unitOfWork.Booking.UpdateStatus(bookingfromdb.Id,SD.StatusApproved);
-                _unitOfWork.Booking.UpdateStripePaymentId(bookingfromdb.Id, session.Id,session.PaymentIntentId);
+                _unitOfWork.Booking.UpdateStatus(bookingfromdb.Id, SD.StatusApproved);
+                _unitOfWork.Booking.UpdateStripePaymentId(bookingfromdb.Id, session.Id, session.PaymentIntentId);
                 _unitOfWork.Save();
             }
         }
 
         return View(bookingId);
     }
+
+    #region apiCalls
+    [HttpGet]
+    public IActionResult GetAll(string status)
+    {
+        IEnumerable<Booking> bookings;
+        if (User.IsInRole(SD.Role_Admin))
+        {
+            bookings = _unitOfWork.Booking.GetAll(includeProperties: "User,Bungalow");
+        }
+        else
+        {
+            var claims = (ClaimsIdentity)User.Identity;
+            var userId = claims.FindFirst(ClaimTypes.NameIdentifier).Value;
+            bookings = _unitOfWork.Booking.GetAll(u => u.UserId == userId, includeProperties: "User,Bungalow");
+        }
+        if (string.IsNullOrEmpty(status))
+        {
+            bookings = bookings.Where(x => x.Status.ToLower().Equals(status.ToLower()));
+        }
+        return Json(new { data = bookings });
+    }
+    #endregion
 }
