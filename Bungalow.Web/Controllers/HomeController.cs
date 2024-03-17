@@ -1,4 +1,5 @@
 using BungalowApi.Application.Common.Interfaces;
+using BungalowApi.Application.Common.Utility;
 using BungalowApi.Web.Models;
 using BungalowApi.Web.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -30,12 +31,12 @@ namespace BungalowApi.Web.Controllers
         {
             Thread.Sleep(2000);
             var bungalowList = _unitOfWork.Bungalow.GetAll(includeProperties: "BungalowAmenity").ToList();
+            var bungalowNumbersList = _unitOfWork.BungalowNumber.GetAll().ToList();
+            var bookedBungalows = _unitOfWork.Booking.GetAll(x => x.Status == SD.StatusApproved || x.Status == SD.StatusCheckedIn).ToList();
             foreach (var bungalow in bungalowList)
             {
-                if (bungalow.Id % 2 == 0)
-                {
-                    bungalow.IsAvailable = false;
-                }
+                int roomsAvailable = SD.BungalowRoomsAvailable_Count(bungalow.Id, bungalowNumbersList, checkInDate, nights, bookedBungalows);
+                bungalow.IsAvailable = roomsAvailable > 0;
             }
             HomeVM homeVM = new()
             {
@@ -43,7 +44,7 @@ namespace BungalowApi.Web.Controllers
                 BungalowList = bungalowList,
                 Nights = nights
             };
-            return PartialView("_BungalowList",homeVM);
+            return PartialView("_BungalowList", homeVM);
         }
 
         public IActionResult Privacy()

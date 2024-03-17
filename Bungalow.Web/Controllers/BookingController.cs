@@ -3,7 +3,6 @@ using BungalowApi.Application.Common.Utility;
 using BungalowApi.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Stripe;
 using Stripe.Checkout;
 using System.Security.Claims;
 
@@ -24,7 +23,7 @@ public class BookingController : Controller
         _unitOfWork = unitOfWork;
     }
     [Authorize]
-    public IActionResult FinalizeBooking(int bungalowId, DateOnly checkInDate, int nights)
+    public IActionResult FinalizeBooking(int bungalowId, int nights, DateOnly chkinDate)
     {
         var claimsIdentity = (ClaimsIdentity)User.Identity;
         var userId = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier).Value;
@@ -34,9 +33,9 @@ public class BookingController : Controller
         {
             BungalowId = bungalowId,
             Bungalow = _unitOfWork.Bungalow.Get(b => b.Id == bungalowId, includeProperties: "BungalowAmenity"),
-            CheckInDate = checkInDate,
+            CheckInDate = chkinDate,
             Nights = nights,
-            CheckOutDate = checkInDate.AddDays(nights),
+            CheckOutDate = chkinDate.AddDays(nights),
             UserId = userId,
             Phone = user.PhoneNumber,
             Email = user.Email,
@@ -54,6 +53,18 @@ public class BookingController : Controller
 
         booking.Status = SD.StatusPending;
         booking.BookingDate = DateTime.Now;
+
+        var bungalowNumbersList = _unitOfWork.BungalowNumber.GetAll().ToList();
+        var bookedBungalows = _unitOfWork.Booking.GetAll(x => x.Status == SD.StatusApproved || x.Status == SD.StatusCheckedIn).ToList();
+
+        int roomsAvailable = SD.BungalowRoomsAvailable_Count(bungalow.Id, bungalowNumbersList, booking.CheckInDate, booking.Nights, bookedBungalows);
+
+        if (roomsAvailable == 0)
+        {
+            TempData["error"] = "Room has been sold out!";
+            return RedirectToAction(nameof(FinalizeBooking), new { bungalowId = booking.BungalowId, chkinDate = booking.CheckInDate, nights = booking.Nights });
+        }
+
 
         _unitOfWork.Booking.Add(booking);
         _unitOfWork.Save();
@@ -103,7 +114,7 @@ public class BookingController : Controller
 
             if (session.PaymentStatus == "paid")
             {
-                _unitOfWork.Booking.UpdateStatus(bookingfromdb.Id, SD.StatusApproved);
+                _unitOfWork.Booking.UpdateStatus(bookingfromdb.Id, SD.StatusApproved, 0);
                 _unitOfWork.Booking.UpdateStripePaymentId(bookingfromdb.Id, session.Id, session.PaymentIntentId);
                 _unitOfWork.Save();
             }
@@ -112,6 +123,69 @@ public class BookingController : Controller
         return View(bookingId);
     }
 
+    [Authorize]
+    public IActionResult BookingDetails(int bookingId)
+    {
+        Booking booking = _unitOfWork.Booking.Get(x => x.Id == bookingId, includeProperties: "User,Bungalow");
+
+
+        if (booking.BungalowNumber == 0 && booking.Status == SD.StatusApproved)
+        {
+            var availableBungalowNumber = AssignAvailableBungalowNumberByBungalow(booking.BungalowId);
+
+            booking.BungalowNumbers = _unitOfWork.BungalowNumber.GetAll().Where(u => u.BungalowId == booking.BungalowId && availableBungalowNumber.Any(x => x == u.Bungalow_Number)).ToList();
+        }
+
+        return View(booking);
+    }
+
+    private List<int> AssignAvailableBungalowNumberByBungalow(int bungalowId)
+    {
+        List<int> availableBungalowNumbers = new();
+        var bungalwoNumbers = _unitOfWork.BungalowNumber.GetAll(x => x.BungalowId == bungalowId);
+
+        var checkedInBungalow = _unitOfWork.Booking.GetAll(x => x.BungalowId == bungalowId && x.Status == SD.StatusCheckedIn).Select(x => x.BungalowNumber);
+
+        foreach (var bungalowNumber in bungalwoNumbers)
+        {
+            if (!checkedInBungalow.Contains(bungalowNumber.Bungalow_Number))
+            {
+                availableBungalowNumbers.Add(bungalowNumber.Bungalow_Number);
+            }
+
+        }
+
+        return availableBungalowNumbers;
+    }
+
+
+    [HttpPost]
+    [Authorize(Roles = SD.Role_Admin)]
+    public IActionResult CheckIn(Booking booking)
+    {
+        _unitOfWork.Booking.UpdateStatus(booking.Id, SD.StatusCheckedIn, booking.BungalowNumber);
+        _unitOfWork.Save();
+        TempData["Success"] = "Booking Updated Successfully.";
+        return RedirectToAction(nameof(BookingDetails), new { bookingId = booking.Id });
+    }
+    [HttpPost]
+    [Authorize(Roles = SD.Role_Admin)]
+    public IActionResult CheckOut(Booking booking)
+    {
+        _unitOfWork.Booking.UpdateStatus(booking.Id, SD.StatusCompleted, booking.BungalowNumber);
+        _unitOfWork.Save();
+        TempData["Success"] = "Booking Completed Successfully.";
+        return RedirectToAction(nameof(BookingDetails), new { bookingId = booking.Id });
+    }
+    [HttpPost]
+    [Authorize(Roles = SD.Role_Admin)]
+    public IActionResult CancelBooking(Booking booking)
+    {
+        _unitOfWork.Booking.UpdateStatus(booking.Id, SD.StatusCanceled, 0);
+        _unitOfWork.Save();
+        TempData["Success"] = "Booking Canceled Successfully.";
+        return RedirectToAction(nameof(BookingDetails), new { bookingId = booking.Id });
+    }
     #region apiCalls
     [HttpGet]
     public IActionResult GetAll(string status)
@@ -127,7 +201,7 @@ public class BookingController : Controller
             var userId = claims.FindFirst(ClaimTypes.NameIdentifier).Value;
             bookings = _unitOfWork.Booking.GetAll(u => u.UserId == userId, includeProperties: "User,Bungalow");
         }
-        if (string.IsNullOrEmpty(status))
+        if (!string.IsNullOrEmpty(status))
         {
             bookings = bookings.Where(x => x.Status.ToLower().Equals(status.ToLower()));
         }

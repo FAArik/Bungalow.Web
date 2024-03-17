@@ -29,7 +29,7 @@
                                 {
                                     if (bungalow.IsAvailable)
                                     {
-                                        <a asp-controller="Booking" asp-action="FinalizeBooking" asp-route-bungalowId="@bungalow.Id" asp-route-checkInDate="@Model.CheckInDate" asp-route-nights="@Model.Nights" class="btn btn-success form-control btn-block">
+                                        <a href="@Url.Action("FinalizeBooking","Booking",new{bungalowId=bungalow.Id,chkinDate=Model.CheckInDate,nights=Model.Nights})" class="btn btn-success form-control btn-block">
                                             Book
                                         </a>
                                     }

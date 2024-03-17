@@ -36,5 +36,6 @@ public class Booking
     public int BungalowNumber { get; set; }
     public DateTime PaymentDate { get; set; }
     public bool IsPaymentSuccessful { get; set; }
-
+    [NotMapped]
+    public List<BungalowNumber> BungalowNumbers { get; set; }
 }
