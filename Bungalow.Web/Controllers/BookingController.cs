@@ -200,7 +200,7 @@ public class BookingController : Controller
             var claims = (ClaimsIdentity)User.Identity;
             var userId = claims.FindFirst(ClaimTypes.NameIdentifier).Value;
             bookings = _unitOfWork.Booking.GetAll(u => u.UserId == userId, includeProperties: "User,Bungalow");
-        }
+        }  
         if (!string.IsNullOrEmpty(status))
         {
             bookings = bookings.Where(x => x.Status.ToLower().Equals(status.ToLower()));
