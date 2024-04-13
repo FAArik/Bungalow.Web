@@ -79,9 +79,43 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-12 col-xl-8 mt-2">
+            <div class="card">
+                <div class="card-body">
+
+                    <div class="justfiy-content-center text-center chart-spinner" style="display:none">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12 col-xl-4 mt-2">
+            <div class="card">
+                <div class="card-body">
+                    <div>
+                        <p class="text-muted mb-0">Customer Bookings</p>
+                    </div>
+                    <div id="customerBookingsPieChart" data-colors='["--bs-warning","--bs-primary"]'>
+                    </div>
+
+                    <div class="justfiy-content-center text-center chart-spinner" style="display:none">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @section Scripts {
     <script src="~/js/dashboard/radialChart.js"></script>
     <script src="~/js/dashboard/getTotalBookingsRadial.js"></script>
+    <script src="~/js/dashboard/getTotalRevenueRadial.js"></script>
+    <script src="~/js/dashboard/getTotalUserRadial.js"></script>
+    <script src="~/js/dashboard/getCustomerBookingPieChart.js"></script>
 }

@@ -1,40 +1,39 @@
-﻿function loadradialBarChart(id, data) {
-    var chartColors = getChartColorsArray(id);
-
-    var options = {
-        fill: {
+﻿async function loadradialBarChart(id, data) {
+    await getChartColorsArray(id).then((chartColors) => {
+        var options = {
             colors: chartColors,
-        },
-        chart: {
-            height: 90,
-            width: 90,
-            type: "radialBar",
-            sparkline: {
-                enabled: true
+            chart: {
+                height: 90,
+                width: 90,
+                type: "radialBar",
+                sparkline: {
+                    enabled: true
+                },
+                offsetY: -10
             },
-            offsetY: -10
-        },
 
-        series: data.series,
+            series: data.series,
 
-        plotOptions: {
-            radialBar: {
-                dataLabels: {
-                    value: {
-                        offsetY: -10,
+            plotOptions: {
+                radialBar: {
+                    dataLabels: {
+                        value: {
+                            offsetY: -10,
+                            color: chartColors[0]
+                        }
                     }
                 }
-            }
-        },
-        labels: [""]
-    };
+            },
+            labels: [""]
+        };
 
-    var chart = new ApexCharts(document.querySelector("#" + id), options);
+        var chart = new ApexCharts(document.querySelector("#" + id), options);
 
-    chart.render();
+        chart.render();
+    });
 }
 
-function getChartColorsArray(id) {
+async function getChartColorsArray(id) {
     if (document.getElementById(id) != null) {
         var colors = document.getElementById(id).getAttribute("data-colors")
         if (colors) {
