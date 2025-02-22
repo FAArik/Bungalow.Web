@@ -1,4 +1,5 @@
-﻿@if (User.IsInRole(SD.Role_Admin))
+﻿@using BungalowApi.Application.Common.Utility
+@if (User.IsInRole(SD.Role_Admin))
 {
     Layout = "_LayoutAdmin";
 }

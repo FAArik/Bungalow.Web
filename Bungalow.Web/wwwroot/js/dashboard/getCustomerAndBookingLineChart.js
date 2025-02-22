@@ -1,30 +1,31 @@
 ﻿$(document).ready(() => {
+    console.log("asdas")
     loadCustomerBookingPieChart();
 })
 
 function loadCustomerBookingPieChart() {
     $(".chart-spinner").show();
     $.ajax({
-        url: "/Dashboard/GetTotalBookinPieChartData",
+        url: "/Dashboard/GetMemberAndBookinLineChartData",
         type: "GET",
         dataType: "json",
         success: (data) => {
-            loadPieChart("customerBookingsPieChart", data);
+            alert(data)
+            loadLineChart("newMembersAndBookingsLineChart", data);
+            
             $(".chart-spinner").hide();
-
         }
     })
 }
 
-async function loadPieChart(id, data) {
+async function loadLineChart(id, data) {
     await getChartColorsArray(id).then((chartColors) => {
         var options = {
             series: data.series,
-            labels: data.labels,
             colors: chartColors,
             chart: {
-                type: 'pie',
-                width: 380
+                type: 'line',
+                height: 350
             },
             stroke: {
                 show: false
