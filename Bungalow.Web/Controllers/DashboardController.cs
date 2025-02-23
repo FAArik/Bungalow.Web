@@ -161,7 +161,7 @@ namespace BungalowApi.Web.Controllers
                 Series=chartData
             };
             
-            return Json(booking);
+            return Json(lineChartVM);
         }
     }
 }

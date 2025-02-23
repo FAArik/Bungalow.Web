@@ -13,7 +13,7 @@ namespace BungalowApi.Web.Controllers;
 public class AmenityController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
-     
+
     public AmenityController(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
@@ -41,7 +41,6 @@ public class AmenityController : Controller
     [HttpPost]
     public IActionResult Create(AmenityVM amenityvm)
     {
-
         if (ModelState.IsValid)
         {
             _unitOfWork.Amenity.Add(amenityvm.Amenity);
@@ -49,7 +48,7 @@ public class AmenityController : Controller
             TempData["success"] = "The Amenity has been created successfully";
             return RedirectToAction(nameof(Index));
         }
-       
+
         amenityvm.BungalowList = _unitOfWork.Bungalow.GetAll().Select(x => new SelectListItem
         {
             Text = x.Name,
@@ -57,6 +56,7 @@ public class AmenityController : Controller
         });
         return View(amenityvm);
     }
+
     public IActionResult Update(int amenityId)
     {
         AmenityVM amenityvm = new()
@@ -76,10 +76,10 @@ public class AmenityController : Controller
 
         return View(amenityvm);
     }
+
     [HttpPost]
     public IActionResult Update(AmenityVM amenityvm)
     {
-
         if (ModelState.IsValid)
         {
             _unitOfWork.Amenity.Update(amenityvm.Amenity);
@@ -87,6 +87,7 @@ public class AmenityController : Controller
             TempData["success"] = "The Amenity has been updated successfully";
             return RedirectToAction(nameof(Index));
         }
+
         amenityvm.BungalowList = _unitOfWork.Bungalow.GetAll().Select(x => new SelectListItem
         {
             Text = x.Name,
@@ -94,9 +95,9 @@ public class AmenityController : Controller
         });
         return View(amenityvm);
     }
+
     public IActionResult Delete(int amenityId)
     {
-
         AmenityVM amenityvm = new()
         {
             Amenity = _unitOfWork.Amenity.Get(x => x.Id == amenityId),
@@ -110,8 +111,10 @@ public class AmenityController : Controller
         {
             return RedirectToAction("Error", "Home");
         }
+
         return View(amenityvm);
     }
+
     [HttpPost]
     public IActionResult Delete(AmenityVM amenityvm)
     {
@@ -123,6 +126,7 @@ public class AmenityController : Controller
             TempData["success"] = "The Amenity has been deleted successfully";
             return RedirectToAction(nameof(Index));
         }
+
         TempData["error"] = "The Amenity could not be deleted!";
 
         return View();
