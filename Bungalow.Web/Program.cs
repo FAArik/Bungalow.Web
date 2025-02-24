@@ -5,6 +5,7 @@ using BungalowApi.Infrastructure.Repository;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
+using Syncfusion.Licensing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,7 @@ builder.Services.Configure<IdentityOptions>(opt =>
 
 var app = builder.Build();
 StripeConfiguration.ApiKey = app.Configuration.GetSection("Stripe:SecretKey").Get<string>();
+SyncfusionLicenseProvider.RegisterLicense(app.Configuration.GetSection("Syncfusion:LicenseKey").Get<string>());
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

@@ -13,7 +13,8 @@
                         <div class="d-flex justify-content-between">
                             <p class="card-title text-warning" style="font-size:xx-large">@bungalow.Name</p>
                             <div class="pt-2">
-                                <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target='#exampleModal-@(bungalow.Id)'>
+                                <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
+                                        data-bs-target='#exampleModal-@(bungalow.Id)'>
                                     Details
                                 </button>
                             </div>
@@ -29,7 +30,8 @@
                                 {
                                     if (bungalow.IsAvailable)
                                     {
-                                        <a href="@Url.Action("FinalizeBooking","Booking",new{bungalowId=bungalow.Id,chkinDate=Model.CheckInDate,nights=Model.Nights})" class="btn btn-success form-control btn-block">
+                                        <a href="@Url.Action("FinalizeBooking", "Booking", new { bungalowId = bungalow.Id, chkinDate = Model.CheckInDate, nights = Model.Nights })"
+                                           class="btn btn-success form-control btn-block">
                                             Book
                                         </a>
                                     }
@@ -42,8 +44,8 @@
                                 }
                             </div>
                             <div class="col-4">
-                                <span class="">Max Occupancy : @bungalow.Occupancy adults </span><br />
-                                <span class=" pt-1">Bungalow Size : @bungalow.Sqft sqft</span><br />
+                                <span class="">Max Occupancy : @bungalow.Occupancy adults </span><br/>
+                                <span class=" pt-1">Bungalow Size : @bungalow.Sqft sqft</span><br/>
                             </div>
                             <div class="col-4">
                                 <span class="text-warning float-end font-weight-bold pt-1" style="font-size:25px;">
@@ -58,7 +60,8 @@
                 </div>
             </div>
 
-            <div class="modal fade" id="exampleModal-@(bungalow.Id)" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal fade" id="exampleModal-@(bungalow.Id)" tabindex="-1" aria-labelledby="exampleModalLabel"
+                 aria-hidden="true">
                 <div class="modal-dialog modal-xl" style="border: 1px solid #aaa; border-radius:7px;">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -66,9 +69,14 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body m-0">
-                            <partial name="_BungalowDetail" model="@bungalow" />
+                            <partial name="_BungalowDetail" model="@bungalow"/>
                         </div>
                         <div class="modal-footer">
+                            <button asp-controller="Home" asp-action="GeneratePPTExport" asp-route-id="@bungalow.Id"
+                                    type="submit" class="btn btn-outline-warning">
+                                <i class="bi bi-file-earmark-ppt"></i>
+                                Download Bungalow PPT
+                            </button>
                             <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Close</button>
                         </div>
 
