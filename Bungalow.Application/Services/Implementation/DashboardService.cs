@@ -20,7 +20,7 @@ public class DashboardService : IDashboardService
 
     public async Task<RadialBarChartDTO> GetTotalBookingRadialChartData()
     {
-        var bookings = _unitOfWork.Booking.GetAll(u => u.Status != SD.StatusPending || u.Status == SD.StatusCanceled);
+        var bookings = _unitOfWork.Booking.GetAll(u => u.Status != SD.StatusPending || u.Status == SD.StatusCancelled);
 
         var currentMonthCount =
             bookings.Count(u => u.BookingDate >= currentMonthStartDate && u.BookingDate <= DateTime.Now);
@@ -41,7 +41,7 @@ public class DashboardService : IDashboardService
         dto.hasRatioIncreased = currentMonthStartDate > previousMonthStartDate;
         dto.Series = new int[] { increaseDecreaseRatio };
 
-        return SD.GetRadialBarChartDataModel(bookings.Count(), currentMonthCount, prevMonthCount);
+        return SD.GetRadialCartDataModel(bookings.Count(), currentMonthCount, prevMonthCount);
     }
 
 
@@ -55,13 +55,13 @@ public class DashboardService : IDashboardService
         var prevMonthCount =
             totalUsers.Count(u => u.CreatedAt >= previousMonthStartDate && u.CreatedAt <= currentMonthStartDate);
 
-        return SD.GetRadialBarChartDataModel(totalUsers.Count(), currentMonthCount, prevMonthCount);
+        return SD.GetRadialCartDataModel(totalUsers.Count(), currentMonthCount, prevMonthCount);
     }
 
     public async Task<RadialBarChartDTO> GetRevenueChartData()
     {
         var totalBookings =
-            _unitOfWork.Booking.GetAll(u => u.Status != SD.StatusPending || u.Status == SD.StatusCanceled);
+            _unitOfWork.Booking.GetAll(u => u.Status != SD.StatusPending || u.Status == SD.StatusCancelled);
 
         var totalRevenue = Convert.ToInt32(totalBookings.Sum(x => x.TotalCost));
 
@@ -72,14 +72,14 @@ public class DashboardService : IDashboardService
             .Where(u => u.BookingDate >= previousMonthStartDate && u.BookingDate <= currentMonthStartDate)
             .Sum(x => x.TotalCost);
 
-        return SD.GetRadialBarChartDataModel(totalBookings.Count(), currentMonthCount, prevMonthCount);
+        return SD.GetRadialCartDataModel(totalBookings.Count(), currentMonthCount, prevMonthCount);
     }
 
     public async Task<PieChartDTO> GetTotalBookinPieChartData()
     {
         var bookings = _unitOfWork.Booking.GetAll(u =>
             u.BookingDate >= DateTime.Now.AddDays(-30) &&
-            (u.Status != SD.StatusPending || u.Status == SD.StatusCanceled));
+            (u.Status != SD.StatusPending || u.Status == SD.StatusCancelled));
 
         var customerWithOneBooking = bookings.GroupBy(x => x.UserId).Where(x => x.Count() == 1).Select(x => x.Key);
         int bookingsByNewCustomer = customerWithOneBooking.Count();

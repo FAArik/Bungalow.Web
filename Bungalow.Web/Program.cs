@@ -1,4 +1,5 @@
 using BungalowApi.Application.Common.Interfaces;
+using BungalowApi.Application.Contract;
 using BungalowApi.Application.Services.Implementation;
 using BungalowApi.Application.Services.Interface;
 using BungalowApi.Domain.Entities;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
 using Syncfusion.Licensing;
+using WhiteLagoon.Infrastructure.Emails;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +24,12 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 
+builder.Services.AddScoped<IBungalowService, BungalowService>();
+builder.Services.AddScoped<IBungalowNumberService, BungalowNumberService>();
+builder.Services.AddScoped<IAmenityService, AmenityService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.ConfigureApplicationCookie(option =>
 {
     option.AccessDeniedPath = "/Account/AccessDenies";

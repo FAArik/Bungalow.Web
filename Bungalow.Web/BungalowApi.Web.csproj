@@ -32,4 +32,10 @@
     <Folder Include="wwwroot\lib\jquery-ajax-unobtrusive\dist\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="wwwroot\images\BungalowImage\a78075cc-2905-4471-a578-1d5fe3945fcd.jpg" />
+    <_ContentIncludedByDefault Remove="wwwroot\images\BungalowImage\cac7e1b4-5ba4-493f-9b73-14434d5b56d7.jpg" />
+    <_ContentIncludedByDefault Remove="wwwroot\images\BungalowImage\d75cb0ad-9ed1-46af-87bc-fa99e00b2e58.jpg" />
+  </ItemGroup>
+
 </Project>

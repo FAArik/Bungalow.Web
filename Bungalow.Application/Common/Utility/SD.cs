@@ -12,18 +12,22 @@ public static class SD
     public const string StatusApproved = "Approved";
     public const string StatusCheckedIn = "CheckedIn";
     public const string StatusCompleted = "Completed";
-    public const string StatusCanceled = "Canceled";
+    public const string StatusCancelled = "Cancelled";
     public const string StatusRefunded = "Refunded";
 
-    public static int BungalowRoomsAvailable_Count(int bungalowid, List<BungalowNumber> bungalowNumberList, DateOnly checkInDate, int nights, List<Booking> bookings)
+    public static int BungalowRoomsAvailable_Count(int bungalowId,
+        List<BungalowNumber> bungalowNumberList, DateOnly checkInDate, int nights,
+        List<Booking> bookings)
     {
         List<int> bookingInDate = new();
-        int finalAvailableRoom = int.MaxValue;
-        var roomsInBungalow = bungalowNumberList.Where(x => x.BungalowId == bungalowid).Count();
+        int finalAvailableRoomForAllNights = int.MaxValue;
+        var roomsInBungalow = bungalowNumberList.Where(x => x.BungalowId == bungalowId).Count();
 
         for (int i = 0; i < nights; i++)
         {
-            var bungalowsBooked = bookings.Where(x => x.CheckInDate <= checkInDate.AddDays(i) && x.CheckOutDate > checkInDate.AddDays(i) && x.BungalowId == bungalowid);
+            var bungalowsBooked = bookings.Where(u => u.CheckInDate <= checkInDate.AddDays(i)
+                                                      && u.CheckOutDate > checkInDate.AddDays(i) &&
+                                                      u.BungalowId == bungalowId);
 
             foreach (var booking in bungalowsBooked)
             {
@@ -34,38 +38,40 @@ public static class SD
             }
 
             var totalAvailableRooms = roomsInBungalow - bookingInDate.Count;
-
             if (totalAvailableRooms == 0)
             {
                 return 0;
             }
             else
             {
-                if (finalAvailableRoom > totalAvailableRooms)
+                if (finalAvailableRoomForAllNights > totalAvailableRooms)
                 {
-                    finalAvailableRoom = totalAvailableRooms;
+                    finalAvailableRoomForAllNights = totalAvailableRooms;
                 }
             }
         }
-        return finalAvailableRoom;
+
+        return finalAvailableRoomForAllNights;
     }
-    
-    public static RadialBarChartDTO GetRadialBarChartDataModel(int totalCount, double currentMonthCount,
+
+    public static RadialBarChartDTO GetRadialCartDataModel(int totalCount, double currentMonthCount,
         double prevMonthCount)
     {
-        RadialBarChartDTO dto = new();
+        RadialBarChartDTO RadialBarChartDto = new();
+
 
         int increaseDecreaseRatio = 100;
+
         if (prevMonthCount != 0)
         {
             increaseDecreaseRatio = Convert.ToInt32((currentMonthCount - prevMonthCount) / prevMonthCount * 100);
         }
 
-        dto.TotalCount = totalCount;
-        dto.CountInCurrentMonth = Convert.ToInt32(currentMonthCount);
-        dto.hasRatioIncreased = currentMonthCount > prevMonthCount;
-        dto.Series = new int[] { increaseDecreaseRatio };
+        RadialBarChartDto.TotalCount = totalCount;
+        RadialBarChartDto.CountInCurrentMonth = Convert.ToInt32(currentMonthCount);
+        RadialBarChartDto.hasRatioIncreased = currentMonthCount > prevMonthCount;
+        RadialBarChartDto.Series = new int[] { increaseDecreaseRatio };
 
-        return dto;
+        return RadialBarChartDto;
     }
 }

@@ -2,40 +2,36 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BungalowApi.Domain.Entities;
+
 public class Booking
 {
-    [Key]
-    public int Id { get; set; }
-    [Required]
+    [Key] public int Id { get; set; }
+    [Required] 
     public string UserId { get; set; }
-    [ForeignKey("UserId")]
+    
+    [ForeignKey("UserId")] 
     public ApplicationUser User { get; set; }
-    [Required]
+    
+    [Required] 
     public int BungalowId { get; set; }
-    [ForeignKey("BungalowId")]
+    
+    [ForeignKey("BungalowId")] 
     public Bungalow Bungalow { get; set; }
-    [Required]
-    public string Name { get; set; }
-    [Required]
-    public string Email { get; set; }
+    [Required] public string Name { get; set; }
+    [Required] public string Email { get; set; }
     public string Phone { get; set; }
-    [Required]
-    public double TotalCost { get; set; }
+    [Required] public double TotalCost { get; set; }
     public int Nights { get; set; }
     public string? Status { get; set; }
-    [Required]
-    public DateTime BookingDate { get; set; }
-    [Required]
-    public DateOnly CheckInDate { get; set; }
-    [Required]
-    public DateOnly CheckOutDate { get; set; }
+    [Required] public DateTime BookingDate { get; set; }
+    [Required] public DateOnly CheckInDate { get; set; }
+    [Required] public DateOnly CheckOutDate { get; set; }
     public string? StripeSessionId { get; set; }
     public string? StriptePaymentIntentId { get; set; }
     public DateTime ActualCheckInDate { get; set; }
     public DateTime ActualCheckOutDate { get; set; }
-    public int BungalowNumber { get; set; }
     public DateTime PaymentDate { get; set; }
     public bool IsPaymentSuccessful { get; set; }
-    [NotMapped]
-    public List<BungalowNumber> BungalowNumbers { get; set; }
+    public int BungalowNumber { get; set; }
+    [NotMapped] public List<BungalowNumber> BungalowNumbers { get; set; }
 }

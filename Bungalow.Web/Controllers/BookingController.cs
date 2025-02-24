@@ -1,357 +1,362 @@
-﻿using BungalowApi.Application.Common.Interfaces;
-using BungalowApi.Application.Common.Utility;
-using BungalowApi.Domain.Entities;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Stripe;
 using Stripe.Checkout;
-using System.Security.Claims;
 using Syncfusion.DocIO;
 using Syncfusion.DocIO.DLS;
 using Syncfusion.DocIORenderer;
 using Syncfusion.Drawing;
 using Syncfusion.Pdf;
+using System.Security.Claims;
+using BungalowApi.Application.Common.Utility;
+using BungalowApi.Application.Contract;
+using BungalowApi.Application.Services.Interface;
+using BungalowApi.Domain.Entities;
 
-namespace BungalowApi.Web.Controllers;
-
-public class BookingController : Controller
+namespace BungalowApi.Web.Controllers
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IWebHostEnvironment _webHostEnvironment;
-
-    [Authorize]
-    public IActionResult Index()
+    public class BookingController : Controller
     {
-        return View();
-    }
+        private readonly IBookingService _bookingService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IBungalowService _bungalowService;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IBungalowNumberService _bungalowNumberService;
+        private readonly IPaymentService _paymentService;
+        private readonly IEmailService _emailService;
 
-    public BookingController(IUnitOfWork unitOfWork, IWebHostEnvironment webHostEnvironment)
-    {
-        _unitOfWork = unitOfWork;
-        _webHostEnvironment = webHostEnvironment;
-    }
-
-    [Authorize]
-    public IActionResult FinalizeBooking(int bungalowId, int nights, DateOnly chkinDate)
-    {
-        var claimsIdentity = (ClaimsIdentity)User.Identity;
-        var userId = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier).Value;
-
-        ApplicationUser user = _unitOfWork.User.Get(x => x.Id == userId);
-        Booking booking = new()
+        public BookingController(IBookingService bookingService,
+            IPaymentService paymentService,
+            IBungalowService bungalowService, IBungalowNumberService bungalowNumberService,
+            IWebHostEnvironment webHostEnvironment, UserManager<ApplicationUser> userManager,
+            IEmailService emailService)
         {
-            BungalowId = bungalowId,
-            Bungalow = _unitOfWork.Bungalow.Get(b => b.Id == bungalowId, includeProperties: "BungalowAmenity"),
-            CheckInDate = chkinDate,
-            Nights = nights,
-            CheckOutDate = chkinDate.AddDays(nights),
-            UserId = userId,
-            Phone = user.PhoneNumber,
-            Email = user.Email,
-            Name = user.Name
-        };
-        booking.TotalCost = booking.Bungalow.Price * nights;
-        return View(booking);
-    }
+            _emailService = emailService;
+            _paymentService = paymentService;
+            _userManager = userManager;
+            _bungalowService = bungalowService;
+            _bungalowNumberService = bungalowNumberService;
+            _bookingService = bookingService;
+            _webHostEnvironment = webHostEnvironment;
+        }
 
-    [Authorize]
-    [HttpPost]
-    public IActionResult FinalizeBooking(Booking booking)
-    {
-        var bungalow = _unitOfWork.Bungalow.Get(u => u.Id == booking.BungalowId);
-        booking.TotalCost = bungalow.Price * booking.Nights;
-
-        booking.Status = SD.StatusPending;
-        booking.BookingDate = DateTime.Now;
-
-        var bungalowNumbersList = _unitOfWork.BungalowNumber.GetAll().ToList();
-        var bookedBungalows = _unitOfWork.Booking
-            .GetAll(x => x.Status == SD.StatusApproved || x.Status == SD.StatusCheckedIn).ToList();
-
-        int roomsAvailable = SD.BungalowRoomsAvailable_Count(bungalow.Id, bungalowNumbersList, booking.CheckInDate,
-            booking.Nights, bookedBungalows);
-
-        if (roomsAvailable == 0)
+        [Authorize]
+        public IActionResult Index()
         {
-            TempData["error"] = "Room has been sold out!";
-            return RedirectToAction(nameof(FinalizeBooking),
-                new { bungalowId = booking.BungalowId, chkinDate = booking.CheckInDate, nights = booking.Nights });
+            return View();
+        }
+
+        [Authorize]
+        public IActionResult FinalizeBooking(int bungalowId, DateOnly checkInDate, int nights)
+        {
+            var claimsIdentity = (ClaimsIdentity)User.Identity;
+            var userId = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier).Value;
+
+            ApplicationUser user = _userManager.FindByIdAsync(userId).GetAwaiter().GetResult();
+
+            Booking booking = new()
+            {
+                BungalowId = bungalowId,
+                Bungalow = _bungalowService.GetBungalowById(bungalowId),
+                CheckInDate = checkInDate,
+                Nights = nights,
+                CheckOutDate = checkInDate.AddDays(nights),
+                UserId = userId,
+                Phone = user.PhoneNumber,
+                Email = user.Email,
+                Name = user.Name
+            };
+            booking.TotalCost = booking.Bungalow.Price * nights;
+            return View(booking);
+        }
+
+        [Authorize]
+        [HttpPost]
+        public IActionResult FinalizeBooking(Booking booking)
+        {
+            var bungalow = _bungalowService.GetBungalowById(booking.BungalowNumber);
+            booking.TotalCost = bungalow.Price * booking.Nights;
+
+            booking.Status = SD.StatusPending;
+            booking.BookingDate = DateTime.Now;
+
+
+            if (!_bungalowService.IsBungalowAvailableByDate(bungalow.Id, booking.Nights, booking.CheckInDate))
+            {
+                TempData["error"] = "Room has been sold out!";
+                //no rooms available
+                return RedirectToAction(nameof(FinalizeBooking), new
+                {
+                    bungalowId = booking.BungalowId,
+                    checkInDate = booking.CheckInDate,
+                    nights = booking.Nights
+                });
+            }
+
+
+            _bookingService.CreateBooking(booking);
+
+            var domain = Request.Scheme + "://" + Request.Host.Value + "/";
+
+            var options = _paymentService.CreateStripeSessionOptions(booking, bungalow, domain);
+
+            var session = _paymentService.CreateStripeSession(options);
+
+            _bookingService.UpdateStripePaymentID(booking.Id, session.Id, session.PaymentIntentId);
+            Response.Headers.Add("Location", session.Url);
+            return new StatusCodeResult(303);
+        }
+
+        [Authorize]
+        public IActionResult BookingConfirmation(int bookingId)
+        {
+            Booking bookingFromDb = _bookingService.GetBookingById(bookingId);
+
+            if (bookingFromDb.Status == SD.StatusPending)
+            {
+                //this is a pending order, we need to confirm if payment was successful
+
+                var service = new SessionService();
+                Session session = service.Get(bookingFromDb.StripeSessionId);
+
+                if (session.PaymentStatus == "paid")
+                {
+                    _bookingService.UpdateStatus(bookingFromDb.Id, SD.StatusApproved, 0);
+                    _bookingService.UpdateStripePaymentID(bookingFromDb.Id, session.Id, session.PaymentIntentId);
+
+                    _emailService.SendEmailAsync(bookingFromDb.Email, "Booking Confirmation - White Lagoon",
+                        "<p>Your booking has been confirmed. Booking ID - " + bookingFromDb.Id + "</p>");
+                }
+            }
+
+            return View(bookingId);
+        }
+
+        [Authorize]
+        public IActionResult BookingDetails(int bookingId)
+        {
+            Booking bookingFromDb = _bookingService.GetBookingById(bookingId);
+
+            if (bookingFromDb.BungalowNumber == 0 && bookingFromDb.Status == SD.StatusApproved)
+            {
+                var availableBungalowNumber = AssignAvailableBungalowNumberByBungalow(bookingFromDb.BungalowId);
+
+                bookingFromDb.BungalowNumbers = _bungalowNumberService.GetAllBungalowNumbers().Where(u =>
+                    u.BungalowId == bookingFromDb.BungalowId
+                    && availableBungalowNumber.Any(x => x == u.Bungalow_Number)).ToList();
+            }
+
+            return View(bookingFromDb);
         }
 
 
-        _unitOfWork.Booking.Add(booking);
-        _unitOfWork.Save();
+        [HttpPost]
+        [Authorize]
+        public IActionResult GenerateInvoice(int id, string downloadType)
+        {
+            string basePath = _webHostEnvironment.WebRootPath;
 
-        var domain = Request.Scheme + "://" + Request.Host.Value + "/";
-        var options = new SessionCreateOptions
-        {
-            LineItems = new List<SessionLineItemOptions>(),
-            Mode = "payment",
-            SuccessUrl = domain + $"booking/BookingConfirmation?bookingId={booking.Id}",
-            CancelUrl = domain +
-                        $"booking/FinalizeBooking?bungalowId={booking.BungalowId}&checkInDate={booking.CheckInDate}&nights={booking.Nights}",
-        };
-        options.LineItems.Add(new SessionLineItemOptions
-        {
-            PriceData = new SessionLineItemPriceDataOptions
+            WordDocument document = new WordDocument();
+
+
+            // Load the template.
+            string dataPath = basePath + @"/exports/BookingDetails.docx";
+            using FileStream fileStream = new(dataPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            document.Open(fileStream, FormatType.Automatic);
+
+            //Update Template
+            Booking bookingFromDb = _bookingService.GetBookingById(id);
+
+            TextSelection textSelection = document.Find("xx_customer_name", false, true);
+            WTextRange textRange = textSelection.GetAsOneRange();
+            textRange.Text = bookingFromDb.Name;
+
+            textSelection = document.Find("xx_customer_phone", false, true);
+            textRange = textSelection.GetAsOneRange();
+            textRange.Text = bookingFromDb.Phone;
+
+            textSelection = document.Find("xx_customer_email", false, true);
+            textRange = textSelection.GetAsOneRange();
+            textRange.Text = bookingFromDb.Email;
+
+            textSelection = document.Find("XX_BOOKING_NUMBER", false, true);
+            textRange = textSelection.GetAsOneRange();
+            textRange.Text = "BOOKING ID - " + bookingFromDb.Id;
+            textSelection = document.Find("XX_BOOKING_DATE", false, true);
+            textRange = textSelection.GetAsOneRange();
+            textRange.Text = "BOOKING DATE - " + bookingFromDb.BookingDate.ToShortDateString();
+
+
+            textSelection = document.Find("xx_payment_date", false, true);
+            textRange = textSelection.GetAsOneRange();
+            textRange.Text = bookingFromDb.PaymentDate.ToShortDateString();
+            textSelection = document.Find("xx_checkin_date", false, true);
+            textRange = textSelection.GetAsOneRange();
+            textRange.Text = bookingFromDb.CheckInDate.ToShortDateString();
+            textSelection = document.Find("xx_checkout_date", false, true);
+            textRange = textSelection.GetAsOneRange();
+            textRange.Text = bookingFromDb.CheckOutDate.ToShortDateString();
+            ;
+            textSelection = document.Find("xx_booking_total", false, true);
+            textRange = textSelection.GetAsOneRange();
+            textRange.Text = bookingFromDb.TotalCost.ToString("c");
+
+            WTable table = new(document);
+
+            table.TableFormat.Borders.LineWidth = 1f;
+            table.TableFormat.Borders.Color = Color.Black;
+            table.TableFormat.Paddings.Top = 7f;
+            table.TableFormat.Paddings.Bottom = 7f;
+            table.TableFormat.Borders.Horizontal.LineWidth = 1f;
+
+            int rows = bookingFromDb.BungalowNumber > 0 ? 3 : 2;
+            table.ResetCells(rows, 4);
+
+            WTableRow row0 = table.Rows[0];
+
+            row0.Cells[0].AddParagraph().AppendText("NIGHTS");
+            row0.Cells[0].Width = 80;
+            row0.Cells[1].AddParagraph().AppendText("BUNGALOW");
+            row0.Cells[1].Width = 220;
+            row0.Cells[2].AddParagraph().AppendText("PRICE PER NIGHT");
+            row0.Cells[3].AddParagraph().AppendText("TOTAL");
+            row0.Cells[3].Width = 80;
+
+            WTableRow row1 = table.Rows[1];
+
+            row1.Cells[0].AddParagraph().AppendText(bookingFromDb.Nights.ToString());
+            row1.Cells[0].Width = 80;
+            row1.Cells[1].AddParagraph().AppendText(bookingFromDb.Bungalow.Name);
+            row1.Cells[1].Width = 220;
+            row1.Cells[2].AddParagraph().AppendText((bookingFromDb.TotalCost / bookingFromDb.Nights).ToString("c"));
+            row1.Cells[3].AddParagraph().AppendText(bookingFromDb.TotalCost.ToString("c"));
+            row1.Cells[3].Width = 80;
+
+            if (bookingFromDb.BungalowNumber > 0)
             {
-                UnitAmount = (long)(booking.TotalCost * 100),
-                Currency = "try",
-                ProductData = new SessionLineItemPriceDataProductDataOptions
-                {
-                    Name = bungalow.Name,
-                    // Images = new List<string> { domain + bungalow.ImageUrl },
-                },
-            },
-            Quantity = 1,
-        });
+                WTableRow row2 = table.Rows[2];
 
-        var service = new SessionService();
-        Session session = service.Create(options);
+                row2.Cells[0].Width = 80;
+                row2.Cells[1].AddParagraph().AppendText("Bungalow Number - " + bookingFromDb.BungalowNumber.ToString());
+                row2.Cells[1].Width = 220;
+                row2.Cells[3].Width = 80;
+            }
 
-        _unitOfWork.Booking.UpdateStripePaymentId(booking.Id, session.Id, session.PaymentIntentId);
-        _unitOfWork.Save();
-        Response.Headers.Add("Location", session.Url);
+            WTableStyle tableStyle = document.AddTableStyle("CustomStyle") as WTableStyle;
+            tableStyle.TableProperties.RowStripe = 1;
+            tableStyle.TableProperties.ColumnStripe = 2;
+            tableStyle.TableProperties.Paddings.Top = 2;
+            tableStyle.TableProperties.Paddings.Bottom = 1;
+            tableStyle.TableProperties.Paddings.Left = 5.4f;
+            tableStyle.TableProperties.Paddings.Right = 5.4f;
 
-        return new StatusCodeResult(303);
-    }
+            ConditionalFormattingStyle firstRowStyle =
+                tableStyle.ConditionalFormattingStyles.Add(ConditionalFormattingType.FirstRow);
+            firstRowStyle.CharacterFormat.Bold = true;
+            firstRowStyle.CharacterFormat.TextColor = Color.FromArgb(255, 255, 255, 255);
+            firstRowStyle.CellProperties.BackColor = Color.Black;
 
-    [Authorize]
-    public IActionResult BookingConfirmation(int bookingId)
-    {
-        Booking bookingfromdb = _unitOfWork.Booking.Get(x => x.Id == bookingId, includeProperties: "User,Bungalow");
+            table.ApplyStyle("CustomStyle");
 
-        if (bookingfromdb.Status == SD.StatusPending)
-        {
-            var service = new SessionService();
-            Session session = service.Get(bookingfromdb.StripeSessionId);
+            TextBodyPart bodyPart = new(document);
+            bodyPart.BodyItems.Add(table);
 
-            if (session.PaymentStatus == "paid")
+            document.Replace("<ADDTABLEHERE>", bodyPart, false, false);
+
+
+            using DocIORenderer renderer = new();
+            MemoryStream stream = new();
+            if (downloadType == "word")
             {
-                _unitOfWork.Booking.UpdateStatus(bookingfromdb.Id, SD.StatusApproved, 0);
-                _unitOfWork.Booking.UpdateStripePaymentId(bookingfromdb.Id, session.Id, session.PaymentIntentId);
-                _unitOfWork.Save();
+                document.Save(stream, FormatType.Docx);
+                stream.Position = 0;
+
+                return File(stream, "application/docx", "BookingDetails.docx");
+            }
+            else
+            {
+                PdfDocument pdfDocument = renderer.ConvertToPDF(document);
+                pdfDocument.Save(stream);
+                stream.Position = 0;
+
+                return File(stream, "application/pdf", "BookingDetails.pdf");
             }
         }
 
-        return View(bookingId);
-    }
 
-    [Authorize]
-    public IActionResult BookingDetails(int bookingId)
-    {
-        Booking booking = _unitOfWork.Booking.Get(x => x.Id == bookingId, includeProperties: "User,Bungalow");
-
-
-        if (booking.BungalowNumber == 0 && booking.Status == SD.StatusApproved)
+        [HttpPost]
+        [Authorize(Roles = SD.Role_Admin)]
+        public IActionResult CheckIn(Booking booking)
         {
-            var availableBungalowNumber = AssignAvailableBungalowNumberByBungalow(booking.BungalowId);
-
-            booking.BungalowNumbers = _unitOfWork.BungalowNumber.GetAll().Where(u =>
-                    u.BungalowId == booking.BungalowId && availableBungalowNumber.Any(x => x == u.Bungalow_Number))
-                .ToList();
+            _bookingService.UpdateStatus(booking.Id, SD.StatusCheckedIn, booking.BungalowNumber);
+            TempData["Success"] = "Booking Updated Successfully.";
+            return RedirectToAction(nameof(BookingDetails), new { bookingId = booking.Id });
         }
 
-        return View(booking);
-    }
+        [HttpPost]
+        [Authorize(Roles = SD.Role_Admin)]
+        public IActionResult CheckOut(Booking booking)
+        {
+            _bookingService.UpdateStatus(booking.Id, SD.StatusCompleted, booking.BungalowNumber);
+            TempData["Success"] = "Booking Completed Successfully.";
+            return RedirectToAction(nameof(BookingDetails), new { bookingId = booking.Id });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = SD.Role_Admin)]
+        public IActionResult CancelBooking(Booking booking)
+        {
+            _bookingService.UpdateStatus(booking.Id, SD.StatusCancelled, 0);
+            TempData["Success"] = "Booking Cancelled Successfully.";
+            return RedirectToAction(nameof(BookingDetails), new { bookingId = booking.Id });
+        }
 
 
-    public IActionResult GenerateInvoice(int id, string downloadType)
-    {
-        string basePath = _webHostEnvironment.WebRootPath;
+        private List<int> AssignAvailableBungalowNumberByBungalow(int bungalowId)
+        {
+            List<int> availableBungalowNumbers = new();
 
-        WordDocument doc = new WordDocument();
+            var bungalowNumbers = _bungalowNumberService.GetAllBungalowNumbers().Where(u => u.BungalowId == bungalowId);
 
-        string dataPath = basePath + @"/exports/BookingDetails.docx";
-        using FileStream fileStream = new FileStream(dataPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        doc.Open(fileStream, FormatType.Automatic);
+            var checkedInBungalow = _bookingService.GetCheckedInBungalowNumbers(bungalowId);
 
-        Booking bookingFromDb = _unitOfWork.Booking.Get(x => x.Id == id, includeProperties: "User,Bungalow");
+            foreach (var bungalowNumber in bungalowNumbers)
+            {
+                if (!checkedInBungalow.Contains(bungalowNumber.Bungalow_Number))
+                {
+                    availableBungalowNumbers.Add(bungalowNumber.Bungalow_Number);
+                }
+            }
 
-        #region Change Text on document
+            return availableBungalowNumbers;
+        }
 
-        TextSelection selection = doc.Find("xx_customer_name", false, true);
-        WTextRange textRange = selection.GetAsOneRange();
-        textRange.Text = bookingFromDb.Name;
 
-        selection = doc.Find("xx_customer_phone", false, true);
-        textRange = selection.GetAsOneRange();
-        textRange.Text = bookingFromDb.Phone;
+        #region API Calls
 
-        selection = doc.Find("xx_customer_email", false, true);
-        textRange = selection.GetAsOneRange();
-        textRange.Text = bookingFromDb.Email;
+        [HttpGet]
+        [Authorize]
+        public IActionResult GetAll(string status)
+        {
+            IEnumerable<Booking> objBookings;
+            string userId = "";
+            if (string.IsNullOrEmpty(status))
+            {
+                status = "";
+            }
 
-        selection = doc.Find("xx_payment_date", false, true);
-        textRange = selection.GetAsOneRange();
-        textRange.Text = bookingFromDb.PaymentDate.ToShortDateString();
+            if (!User.IsInRole(SD.Role_Admin))
+            {
+                var claimsIdentity = (ClaimsIdentity)User.Identity;
+                userId = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier).Value;
+            }
 
-        selection = doc.Find("xx_checkin_date", false, true);
-        textRange = selection.GetAsOneRange();
-        textRange.Text = bookingFromDb.CheckInDate.ToShortDateString();
+            objBookings = _bookingService.GetAllBookings(userId, status);
 
-        selection = doc.Find("xx_checkout_date", false, true);
-        textRange = selection.GetAsOneRange();
-        textRange.Text = bookingFromDb.CheckOutDate.ToShortDateString();
-
-        selection = doc.Find("xx_booking_total", false, true);
-        textRange = selection.GetAsOneRange();
-        textRange.Text = bookingFromDb.TotalCost.ToString("C");
-
-        selection = doc.Find("XX_BOOKING_NUMBER", false, true);
-        textRange = selection.GetAsOneRange();
-        textRange.Text = "BOOKING NUMBER - " + bookingFromDb.Id;
-
-        selection = doc.Find("XX_BOOKING_DATE", false, true);
-        textRange = selection.GetAsOneRange();
-        textRange.Text = "BOOKING DATE - " + bookingFromDb.BookingDate.ToShortDateString();
+            return Json(new { data = objBookings });
+        }
 
         #endregion
-
-        WTable table = new(doc);
-        table.TableFormat.Borders.LineWidth = 1f;
-        table.TableFormat.Borders.Color = Color.Black;
-        table.TableFormat.Paddings.Top = 7f;
-        table.TableFormat.Paddings.Bottom = 7f;
-        table.TableFormat.Borders.Horizontal.LineWidth = 1f;
-
-        int rows = bookingFromDb.BungalowNumber > 0 ? 3 : 2;
-        table.ResetCells(rows, 4);
-        WTableRow row0 = table.Rows[0];
-        row0.Cells[0].AddParagraph().AppendText("NIGHTS");
-        row0.Cells[0].Width = 80;
-        row0.Cells[1].AddParagraph().AppendText("BUNGALOW");
-        row0.Cells[1].Width = 220;
-        row0.Cells[2].AddParagraph().AppendText("PRICE PER NIGHT");
-        row0.Cells[3].AddParagraph().AppendText("TOTAL");
-        row0.Cells[3].Width = 80;
-
-        WTableRow row1 = table.Rows[1];
-        row1.Cells[0].AddParagraph().AppendText(bookingFromDb.Nights.ToString());
-        row0.Cells[0].Width = 80;
-        row1.Cells[1].AddParagraph().AppendText(bookingFromDb.Bungalow.Name);
-        row0.Cells[1].Width = 220;
-        row1.Cells[2].AddParagraph().AppendText((bookingFromDb.TotalCost / bookingFromDb.Nights).ToString("C"));
-        row1.Cells[3].AddParagraph().AppendText(bookingFromDb.TotalCost.ToString("C"));
-        row0.Cells[3].Width = 80;
-
-        if (bookingFromDb.BungalowNumber > 0)
-        {
-            WTableRow row2 = table.Rows[2];
-            row2.Cells[0].Width = 80;
-            row2.Cells[1].AddParagraph().AppendText("Bungalow Number - " + bookingFromDb.BungalowNumber.ToString());
-            row2.Cells[1].Width = 220;
-            row2.Cells[3].Width = 80;
-        }
-
-        WTableStyle tableStyle = doc.AddTableStyle("CustomStyle");
-        tableStyle.TableProperties.RowStripe = 1;
-        tableStyle.TableProperties.ColumnStripe = 2;
-        tableStyle.TableProperties.Paddings.Top = 2;
-        tableStyle.TableProperties.Paddings.Bottom = 1;
-        tableStyle.TableProperties.Paddings.Left = 5.4f;
-        tableStyle.TableProperties.Paddings.Right = 5.4f;
-
-        ConditionalFormattingStyle firstRowStyle =
-            tableStyle.ConditionalFormattingStyles.Add(ConditionalFormattingType.FirstRow);
-        firstRowStyle.CharacterFormat.Bold = true;
-        firstRowStyle.CharacterFormat.TextColor = Color.FromArgb(255, 255, 255, 255);
-        firstRowStyle.CellProperties.BackColor = Color.Black;
-        table.ApplyStyle("CustomStyle");
-
-        TextBodyPart bodyPart = new(doc);
-        bodyPart.BodyItems.Add(table);
-
-        doc.Replace("<ADDTABLEHERE>", bodyPart, false, false);
-
-        using DocIORenderer renderer = new DocIORenderer();
-        MemoryStream stream = new MemoryStream();
-        if (downloadType == "word")
-        {
-            doc.Save(stream, FormatType.Docx);
-            stream.Position = 0;
-            return File(stream, "application/docx", "BookingDetails.docx");
-        }
-
-        PdfDocument pdfDoc = renderer.ConvertToPDF(doc);
-        pdfDoc.Save(stream);
-        stream.Position = 0;
-        return File(stream, "application/pdf", "BookingDetails.pdf");
     }
-
-    private List<int> AssignAvailableBungalowNumberByBungalow(int bungalowId)
-    {
-        List<int> availableBungalowNumbers = new();
-        var bungalwoNumbers = _unitOfWork.BungalowNumber.GetAll(x => x.BungalowId == bungalowId);
-
-        var checkedInBungalow = _unitOfWork.Booking
-            .GetAll(x => x.BungalowId == bungalowId && x.Status == SD.StatusCheckedIn).Select(x => x.BungalowNumber);
-
-        foreach (var bungalowNumber in bungalwoNumbers)
-        {
-            if (!checkedInBungalow.Contains(bungalowNumber.Bungalow_Number))
-            {
-                availableBungalowNumbers.Add(bungalowNumber.Bungalow_Number);
-            }
-        }
-
-        return availableBungalowNumbers;
-    }
-
-
-    [HttpPost]
-    [Authorize(Roles = SD.Role_Admin)]
-    public IActionResult CheckIn(Booking booking)
-    {
-        _unitOfWork.Booking.UpdateStatus(booking.Id, SD.StatusCheckedIn, booking.BungalowNumber);
-        _unitOfWork.Save();
-        TempData["Success"] = "Booking Updated Successfully.";
-        return RedirectToAction(nameof(BookingDetails), new { bookingId = booking.Id });
-    }
-
-    [HttpPost]
-    [Authorize(Roles = SD.Role_Admin)]
-    public IActionResult CheckOut(Booking booking)
-    {
-        _unitOfWork.Booking.UpdateStatus(booking.Id, SD.StatusCompleted, booking.BungalowNumber);
-        _unitOfWork.Save();
-        TempData["Success"] = "Booking Completed Successfully.";
-        return RedirectToAction(nameof(BookingDetails), new { bookingId = booking.Id });
-    }
-
-    [HttpPost]
-    [Authorize(Roles = SD.Role_Admin)]
-    public IActionResult CancelBooking(Booking booking)
-    {
-        _unitOfWork.Booking.UpdateStatus(booking.Id, SD.StatusCanceled, 0);
-        _unitOfWork.Save();
-        TempData["Success"] = "Booking Canceled Successfully.";
-        return RedirectToAction(nameof(BookingDetails), new { bookingId = booking.Id });
-    }
-
-    #region apiCalls
-
-    [HttpGet]
-    public IActionResult GetAll(string status)
-    {
-        IEnumerable<Booking> bookings;
-        if (User.IsInRole(SD.Role_Admin))
-        {
-            bookings = _unitOfWork.Booking.GetAll(includeProperties: "User,Bungalow");
-        }
-        else
-        {
-            var claims = (ClaimsIdentity)User.Identity;
-            var userId = claims.FindFirst(ClaimTypes.NameIdentifier).Value;
-            bookings = _unitOfWork.Booking.GetAll(u => u.UserId == userId, includeProperties: "User,Bungalow");
-        }
-
-        if (!string.IsNullOrEmpty(status))
-        {
-            bookings = bookings.Where(x => x.Status.ToLower().Equals(status.ToLower()));
-        }
-
-        return Json(new { data = bookings });
-    }
-
-    #endregion
 }

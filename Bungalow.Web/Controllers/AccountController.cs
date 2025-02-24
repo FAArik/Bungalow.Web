@@ -10,14 +10,13 @@ namespace BungalowApi.Web.Controllers;
 
 public class AccountController : Controller
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly RoleManager<IdentityRole> _roleManager;
 
-    public AccountController(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, RoleManager<IdentityRole> roleManager)
+    public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
+        RoleManager<IdentityRole> roleManager)
     {
-        _unitOfWork = unitOfWork;
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
@@ -39,7 +38,8 @@ public class AccountController : Controller
     {
         if (ModelState.IsValid)
         {
-            var result = await _signInManager.PasswordSignInAsync(loginVM.Email, loginVM.Password, loginVM.RememberMe, lockoutOnFailure: false);
+            var result = await _signInManager.PasswordSignInAsync(loginVM.Email, loginVM.Password, loginVM.RememberMe,
+                lockoutOnFailure: false);
             if (result.Succeeded)
             {
                 var user = await _userManager.FindByEmailAsync(loginVM.Email);
@@ -51,7 +51,6 @@ public class AccountController : Controller
                 {
                     if (string.IsNullOrEmpty(loginVM.RedirectUrl))
                     {
-
                         return RedirectToAction("Index", "Home");
                     }
                     else
@@ -70,6 +69,7 @@ public class AccountController : Controller
         await _signInManager.SignOutAsync();
         return RedirectToAction("Index", "Home");
     }
+
     public async Task<IActionResult> AccessDenied()
     {
         return View();
@@ -79,7 +79,7 @@ public class AccountController : Controller
     public IActionResult Register(string returnUrl = null)
     {
         returnUrl ??= Url.Content("~/");
-        
+
         RegisterVM registerVM = new()
         {
             RoleList = _roleManager.Roles.Select(x => new SelectListItem
@@ -120,6 +120,7 @@ public class AccountController : Controller
                 {
                     await _userManager.AddToRoleAsync(user, SD.Role_Customer);
                 }
+
                 await _signInManager.SignInAsync(user, isPersistent: false);
 
                 if (string.IsNullOrEmpty(registerVM.RedirectUrl))
@@ -131,6 +132,7 @@ public class AccountController : Controller
                     return LocalRedirect(registerVM.RedirectUrl);
                 }
             }
+
             foreach (var item in result.Errors)
             {
                 ModelState.AddModelError("", item.Description);

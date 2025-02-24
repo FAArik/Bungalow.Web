@@ -1,77 +1,59 @@
-using BungalowApi.Application.Common.Interfaces;
-using BungalowApi.Application.Common.Utility;
-using BungalowApi.Web.Models;
+using BungalowApi.Application.Services.Interface;
 using BungalowApi.Web.ViewModels;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
-using Syncfusion.Drawing;
 using Syncfusion.Presentation;
 
 namespace BungalowApi.Web.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly IUnitOfWork _unitOfWork;
+
+        private readonly IBungalowService _bungalowService;
         private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public HomeController(IUnitOfWork unitOfWork, IWebHostEnvironment webHostEnvironment)
+        public HomeController(IBungalowService bungalowService, IWebHostEnvironment webHostEnvironment)
         {
-            _unitOfWork = unitOfWork;
+            _bungalowService = bungalowService;
             _webHostEnvironment = webHostEnvironment;
         }
 
         public IActionResult Index()
         {
-            HomeVM homeVM = new HomeVM()
+            HomeVM homeVM = new()
             {
-                BungalowList = _unitOfWork.Bungalow.GetAll(includeProperties: "BungalowAmenity"),
-                Nights = 1,
-                CheckInDate = DateOnly.FromDateTime(DateTime.Now)
+                BungalowList = _bungalowService.GetAllBungalow(),
+                Nights=1,
+                CheckInDate =DateOnly.FromDateTime(DateTime.Now),
             };
             return View(homeVM);
         }
 
         [HttpPost]
-        public IActionResult GetBungalowsByDate(int nights, DateOnly checkInDate)
+        public IActionResult GetBungalowsByDate(int nights, DateOnly checkInDate) 
         {
-            Thread.Sleep(2000);
-            var bungalowList = _unitOfWork.Bungalow.GetAll(includeProperties: "BungalowAmenity").ToList();
-            var bungalowNumbersList = _unitOfWork.BungalowNumber.GetAll().ToList();
-            var bookedBungalows = _unitOfWork.Booking
-                .GetAll(x => x.Status == SD.StatusApproved || x.Status == SD.StatusCheckedIn).ToList();
-            foreach (var bungalow in bungalowList)
-            {
-                int roomsAvailable = SD.BungalowRoomsAvailable_Count(bungalow.Id, bungalowNumbersList, checkInDate,
-                    nights, bookedBungalows);
-                bungalow.IsAvailable = roomsAvailable > 0;
-            }
-
+           
             HomeVM homeVM = new()
             {
                 CheckInDate = checkInDate,
-                BungalowList = bungalowList,
+                BungalowList = _bungalowService.GetBungalowsAvailabilityByDate(nights,checkInDate),
                 Nights = nights
             };
-            return PartialView("_BungalowList", homeVM);
-        }
 
-        public IActionResult Privacy()
-        {
-            return View();
+            return PartialView("_BungalowList",homeVM);
         }
 
         [HttpPost]
         public IActionResult GeneratePPTExport(int id)
         {
-            var bungalow = _unitOfWork.Bungalow.GetAll(includeProperties: "BungalowAmenity")
-                .FirstOrDefault(x => x.Id == id);
+            var bungalow = _bungalowService.GetBungalowById(id);
             if (bungalow is null)
             {
                 return RedirectToAction(nameof(Error));
             }
 
-            string webRootPath = _webHostEnvironment.WebRootPath;
-            string filePath = webRootPath + @"/Exports/ExportBungalowDetails.pptx";
+            string basePath = _webHostEnvironment.WebRootPath;
+            string filePath = basePath + @"/Exports/ExportBungalowDetails.pptx";
+
 
             using IPresentation presentation = Presentation.Open(filePath);
 
@@ -111,6 +93,7 @@ namespace BungalowApi.Web.Controllers
             if (shape is not null)
             {
                 List<string> listItems = bungalow.BungalowAmenity.Select(x => x.Name).ToList();
+
                 shape.TextBody.Text = "";
 
                 foreach (var item in listItems)
@@ -129,34 +112,35 @@ namespace BungalowApi.Web.Controllers
             shape = slide.Shapes.FirstOrDefault(x => x.ShapeName == "imgBungalow") as IShape;
             if (shape is not null)
             {
-                byte[] imgData;
-                string imgUrl;
+                byte[] imageData;
+                string imageUrl;
                 try
                 {
-                    imgUrl = string.Format("{0}{1}", webRootPath, bungalow.ImageUrl);
-                    imgData = System.IO.File.ReadAllBytes(imgUrl);
+                    imageUrl= string.Format("{0}{1}", basePath, bungalow.ImageUrl);
+                    imageData = System.IO.File.ReadAllBytes(imageUrl);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    imgUrl = string.Format("{0}{1}", webRootPath, "/images/placeholder.png");
-                    imgData = System.IO.File.ReadAllBytes(imgUrl);
+                    imageUrl = string.Format("{0}{1}", basePath, "/images/placeholder.png");
+                    imageData = System.IO.File.ReadAllBytes(imageUrl);
                 }
-
-                slide.Shapes.Remove(shape);
-                using MemoryStream memoryStream = new(imgData);
-                IPicture picture = slide.Pictures.AddPicture(memoryStream, 60, 120, 300, 200);
+                slide.Shapes.Remove(shape); 
+                using MemoryStream imageStream = new(imageData);
+                IPicture newPicture = slide.Pictures.AddPicture(imageStream, 60,120,300,200);
             }
-
-            MemoryStream stream = new MemoryStream();
-            presentation.Save(stream);
-            stream.Position = 0;
-            return File(stream, "application/pdf", "Bungalow.pptx");
+            MemoryStream memoryStream = new();
+            presentation.Save(memoryStream);
+            memoryStream.Position = 0;
+            return File(memoryStream,"application/pptx","Bungalow.pptx");
+        }
+        public IActionResult Privacy()
+        {
+            return View();
         }
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return View();
         }
     }
 }

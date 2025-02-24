@@ -21,7 +21,7 @@
         case SD.StatusCompleted:
             completed = "text-white bg-success";
             break;
-        case SD.StatusCanceled:
+        case SD.StatusCancelled:
             cancelled = "text-white bg-success";
             break;
         default:
@@ -56,8 +56,8 @@
                 <li class="list-group-item @completed">@SD.StatusCompleted</li>
                 </a>
                 <a style="text-decoration:none" asp-controller="Booking" asp-action="Index"
-                   asp-route-status="@SD.StatusCanceled">
-                <li class="list-group-item @cancelled">@SD.StatusCanceled</li>
+                   asp-route-status="@SD.StatusCancelled">
+                <li class="list-group-item @cancelled">@SD.StatusCancelled</li>
                 </a>
             </ul>
         </div>
