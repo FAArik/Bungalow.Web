@@ -1,6 +1,6 @@
 ﻿namespace BungalowApi.Web.ViewModels;
 
-public class RadialBarChartVm
+public class RadialBarChartDTO
 {
     public decimal TotalCount { get; set; }
     public decimal CountInCurrentMonth { get; set; }

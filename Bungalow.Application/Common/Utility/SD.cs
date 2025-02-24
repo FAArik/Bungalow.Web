@@ -1,4 +1,5 @@
 ﻿using BungalowApi.Domain.Entities;
+using BungalowApi.Web.ViewModels;
 
 namespace BungalowApi.Application.Common.Utility;
 
@@ -47,5 +48,24 @@ public static class SD
             }
         }
         return finalAvailableRoom;
+    }
+    
+    public static RadialBarChartDTO GetRadialBarChartDataModel(int totalCount, double currentMonthCount,
+        double prevMonthCount)
+    {
+        RadialBarChartDTO dto = new();
+
+        int increaseDecreaseRatio = 100;
+        if (prevMonthCount != 0)
+        {
+            increaseDecreaseRatio = Convert.ToInt32((currentMonthCount - prevMonthCount) / prevMonthCount * 100);
+        }
+
+        dto.TotalCount = totalCount;
+        dto.CountInCurrentMonth = Convert.ToInt32(currentMonthCount);
+        dto.hasRatioIncreased = currentMonthCount > prevMonthCount;
+        dto.Series = new int[] { increaseDecreaseRatio };
+
+        return dto;
     }
 }

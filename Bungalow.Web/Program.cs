@@ -1,4 +1,6 @@
 using BungalowApi.Application.Common.Interfaces;
+using BungalowApi.Application.Services.Implementation;
+using BungalowApi.Application.Services.Interface;
 using BungalowApi.Domain.Entities;
 using BungalowApi.Infrastructure.Data;
 using BungalowApi.Infrastructure.Repository;
@@ -12,11 +14,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(option =>
-option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 
 builder.Services.ConfigureApplicationCookie(option =>
 {
@@ -24,10 +28,7 @@ builder.Services.ConfigureApplicationCookie(option =>
     option.LoginPath = "/Account/Login";
 });
 
-builder.Services.Configure<IdentityOptions>(opt =>
-{
-    opt.Password.RequiredLength = 6;
-});
+builder.Services.Configure<IdentityOptions>(opt => { opt.Password.RequiredLength = 6; });
 
 var app = builder.Build();
 StripeConfiguration.ApiKey = app.Configuration.GetSection("Stripe:SecretKey").Get<string>();
@@ -48,8 +49,19 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+SeedDatabase();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+void SeedDatabase()
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbInitializer = scope.ServiceProvider.GetService<IDbInitializer>();
+        dbInitializer.Initialize();
+    }
+}
